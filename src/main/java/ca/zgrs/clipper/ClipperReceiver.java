@@ -8,6 +8,11 @@ import android.content.BroadcastReceiver;
 
 import android.util.Log;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+
 /*
  * Receives broadcast commands and controls clipboard accordingly.
  * The broadcast receiver is active only as long as the application, or its service is active.
@@ -31,6 +36,8 @@ public class ClipperReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        Log.d(TAG, "onReceive");
+
         ClipboardManager cb = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
         if (isActionSet(intent.getAction())) {
             Log.d(TAG, "Setting text into clipboard");
@@ -54,6 +61,62 @@ public class ClipperReceiver extends BroadcastReceiver {
                 setResultCode(Activity.RESULT_CANCELED);
                 setResultData("");
             }
+        } else {
+            switch (intent.getAction()) {
+                case "clipper.setfile":
+                    String filePath = intent.getStringExtra("filepath");
+                    if (filePath != null) {
+                        File sourceFile = new File(filePath);
+                        if (! sourceFile.exists()) {
+                            setResultCode(Activity.RESULT_CANCELED);
+                            setResultData("Source file does not exist.");
+                            Log.d(TAG, "Source file does not exist.");
+                        } else {
+                            String fileText = readAllTextFromFile(sourceFile);
+                            if (fileText == null) {
+                                setResultCode(Activity.RESULT_CANCELED);
+                                setResultData("Error reading source file.");
+                                Log.d(TAG, "Error reading source file.");
+                            } else {
+                                cb.setText(fileText);
+                                setResultCode(Activity.RESULT_OK);
+                                setResultData("Text from file is copied into clipboard.");
+                                Log.d(TAG, "File text now in clipboard. length " + fileText.length());
+                            }
+                        }
+                    } else {
+                        setResultCode(Activity.RESULT_CANCELED);
+                        setResultData("No source filepath is provided. Use -e filepath \"/sdcard/file_to_read.txt\"");
+                        Log.d(TAG, "No source filepath is provided.");
+                    }
+                    break;
+                default:
+                    Log.w(TAG, "unmatched action: " + intent.getAction());
+                    break;
+            }
+        }
+    }
+
+    public static String readAllTextFromFile(File sourceFile) {
+        //Get the text file
+        File file = sourceFile;
+
+        StringBuilder text = new StringBuilder();
+
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(file));
+            String line;
+
+            while ((line = br.readLine()) != null) {
+                text.append(line);
+                text.append('\n');
+            }
+            br.close();
+            return text.toString();
+        }
+        catch (IOException e) {
+            Log.e(TAG, "IOException reading file", e);
+            return null;
         }
     }
 }
