@@ -24,6 +24,11 @@ Usage example using broadcast intent:
 
 	# am broadcast -a clipper.set -e text "this can be pasted now"
 	# am broadcast -a clipper.get
+	
+Now enhance to allow populating clipboard from a file. Usage example:
+
+	# adb push clipboard_content_file.txt /sdcard/clipboard_content_file.txt
+	# adb shell am broadcast -a clipper.setfile -e filepath \'/sdcard/clipboard_content_file.txt\'
 
 # Building
 Build using maven
